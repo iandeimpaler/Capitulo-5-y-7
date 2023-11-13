@@ -1,7 +1,4 @@
 # Capitulo-5-y-7
-[Ir a Capítulo 5](#capítulo-5)
-
-[Ir a Capítulo 7](#capítulo-7)
 
 # Capítulo 5: Hash, diseño consistente.
 
