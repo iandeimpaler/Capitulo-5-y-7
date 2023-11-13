@@ -135,4 +135,118 @@ Cuando un servidor s1 es removido,  el rango afectado empieza desde el servidor 
 [1] Consistent hashing: https://en.wikipedia.org/wiki/Consistent_hashing [2] Consistent Hashing: https://tom-e-white.com/2007/11/consistent-hashing.html [3] Dynamo: Amazon’s Highly Available Key-value Store: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf [4] Cassandra - A Decentralized Structured Storage System: http://www.cs.cornell.edu/Projects/ladis2009/papers/Lakshmanladis2009.PDF [5] How Discord Scaled Elixir to 5,000,000 Concurrent Users: https://blog.discord.com/scaling-elixir-f9b8e1e7c29b [6] CS168: The Modern Algorithmic Toolbox Lecture #1: Introduction and Consistent Hashing: http://theory.stanford.edu/~tim/s16/l/l1.pdf [7] Maglev: A Fast and Reliable Software Network Load Balancer: https://static.googleusercontent.com/media/research.google.com/en//pubs/ar chive/44824.pdf 
 
 
+## Capitulo 7: diseña un generador de ID único en sistemas distribuidos
+
+En este capítulo se te solicita diseñar un generador de ID único dentro de los sistemas distribuidos.  tu primer pensamiento será el de probablemente utilizar una llave primaria con el atributo de auto incrementación como en una base de datos tradicional.  Pero de hecho el auto incremento no funciona en un ambiente distribuido porque una base de datos única no es suficiente y generar ideas únicas a lo largo de varias bases de datos con un delay mínimo es desafiante. 
+
+## Paso 1 - Entender el problema y establecer un espacio de diseño 
+
+Preguntar acerca de la incertidumbre en la clarificación es el primer paso para aproximarnos al diseño de cualquier sistema,  en especial si estamos dentro de una entrevista. 
+
+Candidato: ¿Cuáles son las características de los IDs únicos?
+Entrevistador: Los IDs deben ser únicos y ordenables.
+Candidato: ¿Para cada nuevo registro, el ID se incrementa en 1?
+Entrevistador: El ID se incrementa con el tiempo, pero no necesariamente solo se incrementa en 1. Los IDs creados por la noche son mayores que los creados por la mañana en el mismo día.
+Candidato: ¿Los IDs solo contienen valores numéricos?
+Entrevistador: Sí, eso es correcto.
+Candidato: ¿Cuál es el requisito de longitud del ID?
+Entrevistador: Los IDs deben ajustarse a 64 bits.
+Candidato: ¿Cuál es la escala del sistema?
+Entrevistador: El sistema debería ser capaz de generar 10,000 IDs por segundo.
+Las preguntas anteriores son ejemplos que puedes hacerle a tu entrevistador.
+Es importante entender los requisitos y aclarar cualquier ambigüedad. Para esta pregunta de la entrevista, los requisitos se enumeran de la siguiente manera:
+• Los IDs deben ser únicos.
+• Los IDs son solo valores numéricos.
+• Los IDs se ajustan a 64 bits.
+• Los IDs están ordenados por fecha.
+• Capacidad para generar más de 10,000 IDs únicos por segundo.
+
+## Paso 2 - Proponer un diseño de alto nivel y alta demanda
+
+Se pueden utilizar múltiples opciones para generar IDs únicos en sistemas distribuidos. Las opciones que consideramos son:
+• Replicación multi-maestro
+• Identificador único universal (UUID)
+• Servidor de tickets
+• Enfoque Twitter snowflake
+Veamos cada una de ellas, cómo funcionan y las ventajas/desventajas de cada opción.
+
+
+
+
+## Replicacion Multi-Master
+
+Este enfoque utiliza la función auto_increment de las bases de datos. En lugar de aumentar el próximo ID en 1, lo incrementamos en k, donde k es el número de servidores de bases de datos en uso. Como se ilustra en la Figura 7-2, el próximo ID a generar es igual al ID anterior en el mismo servidor más 2. Esto resuelve algunos problemas de escalabilidad porque los IDs pueden adaptarse al número de servidores de bases de datos. Sin embargo, esta estrategia tiene algunas desventajas importantes:
+• Difícil de escalar con múltiples centros de datos.
+• Los IDs no aumentan con el tiempo en varios servidores.
+• No escala bien cuando se agrega o elimina un servidor.
+
+
+## UUID
+
+Un UUID es otra manera fácil de obtener IDs únicos. Un UUID es un número de 128 bits utilizado para identificar información en sistemas informáticos. Un UUID tiene una probabilidad muy baja de colisión. Citando a Wikipedia, "después de generar 1 mil millones de UUIDs cada segundo durante aproximadamente 100 años, la probabilidad de crear un duplicado alcanzaría el 50%" [1].
+
+Ventajas: 
+Generar un UUID es sencillo. No se necesita coordinación entre los servidores entonces no habrá ningún problema de sincronización.
+El sistema es más fácil de escalar debido a que cada servidor web es responsable de generar las ids que consuman. El generador Id puede escalar fácilmente con servidores web.
+Desventajas:
+Los IDs tienen una longitud de 128 bits, pero nuestro requisito es de 64 bits.
+Los IDs no aumentan con el tiempo.
+Los IDs podrían no ser numéricos.
+
+
+## Servidor Ticket
+
+
+Los servidores de tickets son otra forma interesante de generar IDs únicos. Flicker desarrolló servidores de tickets para generar claves primarias distribuidas [2]. Vale la pena mencionar cómo funciona el sistema.
+
+La idea es utilizar una función de autoincremento centralizada en un único servidor de base de datos (Servidor de Tickets). Para obtener más información al respecto, consulta el artículo del blog de ingeniería de Flicker [2].
+
+Ventajas:
+ IDs numéricos.
+ Fácil de implementar y funciona para aplicaciones de pequeña a mediana escala.
+
+Desventajas:
+Punto único de fallo. Un único servidor de tickets significa que si el servidor de tickets falla, todos los sistemas que dependen de él enfrentarán problemas. Para evitar un punto único de fallo, podemos configurar varios servidores de tickets. Sin embargo, esto introducirá nuevos desafíos, como la sincronización de datos.
+
+## Aproximación Twitter snowflake(copo de nieve)
+
+Las aproximaciones mencionadas anteriormente nos proporcionan algunas ideas sobre cómo funcionan diferentes sistemas de generación de IDs. Sin embargo, ninguna de ellas cumple con nuestros requisitos específicos; por lo tanto, necesitamos otro enfoque. El sistema de generación de IDs único de Twitter llamado "snowflake" [3] es inspirador y puede satisfacer nuestros requisitos.
+
+La estrategia de "dividir y conquistar" es nuestra aliada. En lugar de generar un ID directamente, dividimos un ID en diferentes secciones. La Figura 7-5 muestra la disposición de un ID de 64 bits.
+
+Cada sección se explica a continuación.
+ Bit de signo: 1 bit. Siempre será 0. Esto está reservado para usos futuros y potencialmente se puede utilizar para distinguir entre números con signo y sin signo.
+Marca de tiempo: 41 bits. Milisegundos desde la época o época personalizada. Utilizamos la época predeterminada de Twitter snowflake 1288834974657, equivalente al 04 de noviembre de 2010, 01:42:54 UTC.
+ ID del centro de datos: 5 bits, lo que nos da 2 ^ 5 = 32 centros de datos.
+ ID de máquina: 5 bits, lo que nos da 2 ^ 5 = 32 máquinas por centro de datos.
+Número de secuencia: 12 bits. Por cada ID generado en esa máquina/proceso, el número de secuencia se incrementa en 1. El número se reinicia a 0 cada milisegundo.
+
+## Paso 3 - Diseño vista profunda
+
+En el diseño de alto nivel, discutimos varias opciones para diseñar un generador de IDs único en sistemas distribuidos. Optamos por un enfoque basado en el generador de IDs Twitter snowflake. Profundicemos en el diseño. Para refrescar nuestra memoria, el diagrama de diseño se vuelve a listar a continuación.
+
+Los IDs de los centros de datos y las máquinas se eligen en el momento de inicio, generalmente fijos una vez que el sistema está en funcionamiento. Cualquier cambio en los IDs de centros de datos y máquinas requiere una revisión cuidadosa, ya que un cambio accidental en esos valores puede provocar conflictos de IDs. Las marcas de tiempo y los números de secuencia se generan cuando el generador de IDs está en funcionamiento.
+
+Marca de tiempo: Los 41 bits más importantes componen la sección de la marca de tiempo. A medida que las marcas de tiempo crecen con el tiempo, los IDs son ordenables por tiempo. La Figura 7-7 muestra un ejemplo de cómo se convierte la representación binaria a UTC. También puedes convertir UTC de nuevo a la representación binaria utilizando un método similar.
+
+La marca de tiempo máxima que se puede representar en 41 bits es 2^41 - 1 = 2199023255551 milisegundos (ms), lo que nos da aproximadamente 69 años (2199023255551 ms / 1000 segundos / 365 días / 24 horas / 3600 segundos). Esto significa que el generador de IDs funcionará durante 69 años y tener una época personalizada cercana a la fecha actual retrasa el tiempo de desbordamiento. Después de 69 años, necesitaremos una nueva época o adoptar otras técnicas para migrar IDs.
+
+Número de secuencia: El número de secuencia es de 12 bits, lo que nos da 2^12 = 4096 combinaciones. Este campo es 0 a menos que se generen más de un ID en un milisegundo en el mismo servidor. En teoría, una máquina puede admitir un máximo de 4096 nuevos IDs por milisegundo.
+
+## Paso 4 - Envolver
+
+En este capítulo, hablamos sobre diferentes formas de diseñar un generador de IDs único: replicación multi-maestro, UUID, servidor de tickets y un generador de IDs único similar al Twitter snowflake. Optamos por snowflake porque cubre todos nuestros casos de uso y es escalable en un entorno distribuido.
+
+Si hay tiempo extra al final de la entrevista, aquí hay algunos puntos adicionales para discutir:
+
+Sincronización de relojes: En nuestro diseño, asumimos que los servidores de generación de IDs tienen el mismo reloj. Esta suposición puede no ser cierta cuando un servidor se está ejecutando en múltiples núcleos. El mismo desafío existe en escenarios de varias máquinas. Las soluciones para la sincronización de relojes están fuera del alcance de este libro, pero es importante entender que el problema existe. El Protocolo de Tiempo de Red es la solución más popular para este problema. Para lectores interesados, consulten el material de referencia [4].
+Ajuste de la longitud de la sección: Por ejemplo, menos números de secuencia pero más bits de marca de tiempo son efectivos para baja concurrencia y aplicaciones a largo plazo.
+Alta disponibilidad: Dado que un generador de IDs es un sistema crítico para la misión, debe ser altamente disponible.
+¡Felicidades por llegar tan lejos! ¡Ahora, date una palmadita en la espalda! ¡Buen trabajo!
+
+## Materiales de referencia
+
+[1] Universally unique identifier: https://en.wikipedia.org/wiki/Universally_unique_identifier [2] Ticket Servers: Distributed Unique Primary Keys on the Cheap: https://code.flickr.net/2010/02/08/ticket-servers-distributed-unique-primarykeys-on-the-cheap/ [3] Announcing Snowflake: https://blog.twitter.com/engineering/en_us/a/2010/announcingsnowflake.html [4] Network time protocol: https://en.wikipedia.org/wiki/Network_Time_Protocol 
+
+
 
