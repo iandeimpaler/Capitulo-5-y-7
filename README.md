@@ -3,7 +3,7 @@
 
 [Ir a Capítulo 7](##capítulo-7)
 
-## Capítulo 5: Hash, diseño consistente.
+# Capítulo 5: Hash, diseño consistente.
 
 Para obtener un escalamiento horizontal es importante distribuir las solicitudes de información de manera eficiente.  El proceso de hashing es comúnmente usado para obtener resultados alineados con este propósito,  veamos de manera profunda el problema.
 
@@ -139,7 +139,7 @@ Cuando un servidor s1 es removido,  el rango afectado empieza desde el servidor 
 [1] Consistent hashing: https://en.wikipedia.org/wiki/Consistent_hashing [2] Consistent Hashing: https://tom-e-white.com/2007/11/consistent-hashing.html [3] Dynamo: Amazon’s Highly Available Key-value Store: https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf [4] Cassandra - A Decentralized Structured Storage System: http://www.cs.cornell.edu/Projects/ladis2009/papers/Lakshmanladis2009.PDF [5] How Discord Scaled Elixir to 5,000,000 Concurrent Users: https://blog.discord.com/scaling-elixir-f9b8e1e7c29b [6] CS168: The Modern Algorithmic Toolbox Lecture #1: Introduction and Consistent Hashing: http://theory.stanford.edu/~tim/s16/l/l1.pdf [7] Maglev: A Fast and Reliable Software Network Load Balancer: https://static.googleusercontent.com/media/research.google.com/en//pubs/ar chive/44824.pdf 
 
 
-## Capítulo 7: diseña un generador de ID único en sistemas distribuidos
+# Capítulo 7: diseña un generador de ID único en sistemas distribuidos
 
 En este capítulo se te solicita diseñar un generador de ID único dentro de los sistemas distribuidos.  tu primer pensamiento será el de probablemente utilizar una llave primaria con el atributo de auto incrementación como en una base de datos tradicional.  Pero de hecho el auto incremento no funciona en un ambiente distribuido porque una base de datos única no es suficiente y generar ideas únicas a lo largo de varias bases de datos con un delay mínimo es desafiante. 
 
