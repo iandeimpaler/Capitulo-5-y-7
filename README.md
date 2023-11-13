@@ -212,7 +212,7 @@ Punto único de fallo. Un único servidor de tickets significa que si el servido
 
 Las aproximaciones mencionadas anteriormente nos proporcionan algunas ideas sobre cómo funcionan diferentes sistemas de generación de IDs. Sin embargo, ninguna de ellas cumple con nuestros requisitos específicos; por lo tanto, necesitamos otro enfoque. El sistema de generación de IDs único de Twitter llamado "snowflake" [3] es inspirador y puede satisfacer nuestros requisitos.
 
-La estrategia de "dividir y conquistar" es nuestra aliada. En lugar de generar un ID directamente, dividimos un ID en diferentes secciones. La Figura 7-5 muestra la disposición de un ID de 64 bits.
+La estrategia de "dividir y conquistar" es nuestra aliada. En lugar de generar un ID directamente, dividimos un ID en diferentes secciones.
 
 Cada sección se explica a continuación.
  Bit de signo: 1 bit. Siempre será 0. Esto está reservado para usos futuros y potencialmente se puede utilizar para distinguir entre números con signo y sin signo.
